@@ -1,0 +1,20 @@
+networks:
+  aptestnet:
+    name: aptestnet
+
+services:
+  tester:
+    build:
+      context: ../tester/deploy
+      dockerfile: Dockerfile
+      no_cache: true
+    image: sergiunb/aptester
+    container_name: aptester
+    volumes:
+      - "../tester/notebooks:/home/jovyan/work"
+    networks:
+      - aptestnet
+    ports:
+      - "8888:8888"
+    command: ["bash", "-c",
+              "jupyter notebook --ip 0.0.0.0 --allow-root --no-browser --NotebookApp.token=''"]

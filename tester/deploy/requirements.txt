@@ -1,0 +1,3 @@
+# Type checkers
+mypy==1.14.0
+pydantic==2.10.4
