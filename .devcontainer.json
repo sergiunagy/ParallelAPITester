@@ -1,8 +1,8 @@
 {
     "dockerComposeFile": ["deploy/docker-compose.yml"],
-    "service": "tester",
+    "service": "fastapianalytics",
     "shutdownAction": "stopCompose",
-    "workspaceFolder": "/home/jovyan/work",
+    "workspaceFolder": "/home/app",
     "customizations": {
       // Configure properties specific to VS Code.
       "vscode": {
