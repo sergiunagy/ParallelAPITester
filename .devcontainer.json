@@ -1,0 +1,14 @@
+{
+    "dockerComposeFile": ["deploy/docker-compose.yml"],
+    "service": "tester",
+    "shutdownAction": "stopCompose",
+    "workspaceFolder": "/home/jovyan/work",
+    "customizations": {
+      // Configure properties specific to VS Code.
+      "vscode": {
+        // Add the IDs of extensions you want installed when the container is created.
+        "extensions": ["ms-python.mypy-type-checker", "ms-python.python"]
+      }
+    }
+  }
+  

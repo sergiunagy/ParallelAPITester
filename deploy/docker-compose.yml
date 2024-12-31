@@ -7,7 +7,7 @@ services:
     build:
       context: ../tester/deploy
       dockerfile: Dockerfile
-      no_cache: true
+      # no_cache: true
     image: sergiunb/aptester
     container_name: aptester
     volumes:
