@@ -14,7 +14,7 @@ async def test(ssid: str, data:str):
     # await _local_fn(ssid) # mypy test -> requires filesave
 
     return {
-        "result": "mirrored",
+        "result": "mirroring-test",
         "message": "Alive",
         "ssid": ssid,
         "data": data,
