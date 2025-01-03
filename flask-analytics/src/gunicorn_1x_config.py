@@ -13,7 +13,7 @@ import os
 bind = os.getenv('GUNICORN_EXPOSED_ON', default='0.0.0.0:5000') #'0.0.0.0:5000'
 
 # number of poor bastards doing work
-workers= 1
+workers= 3 # assume 1x Cores CPU
 
 # Give workers no time to rest >:D - timeout threshold at 0s 
 timeout = 0

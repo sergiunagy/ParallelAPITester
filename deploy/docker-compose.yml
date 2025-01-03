@@ -27,6 +27,13 @@ services:
     working_dir: /home/app
     image: sergiunb/fastapianalytics
     container_name: fastapianalytics
+    environment:
+    # https://www.uvicorn.org/#command-line-options
+      - UVICORN_APP=app:app
+      - UVICORN_HOST=0.0.0.0
+      - UVICORN_PORT=5000
+      - UVICORN_WORKERS=1
+      - UVICORN_LOG_LEVEL=trace
     volumes:
       - "../fastapi-analytics/src:/home/app"
     networks:
@@ -34,20 +41,21 @@ services:
     ports:
       - 3012:5000
     
-    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]
+    command: ["uvicorn", "--reload"]
+    # command: ["uvicorn"]
 
-  flaskanalytics:
+  flask1xanalytics:
     build:
       context: ../flask-analytics/deploy
       dockerfile: Dockerfile
       # no_cache: true
     working_dir: /home/app
     image: sergiunb/flaskanalytics
-    container_name: flaskanalytics
+    container_name: flask1xanalytics
     environment:
-      - ENV GUNICORN_EXPOSED_ON=0.0.0.0:5000
-      - ENV FLASK_APP=app.py
-      - ENV FLASK_DEBUG=1
+      - GUNICORN_EXPOSED_ON=0.0.0.0:5000
+      - FLASK_APP=app.py
+      - FLASK_DEBUG=1
     volumes:
       - "../flask-analytics/src:/home/app"
     networks:
@@ -55,4 +63,25 @@ services:
     ports:
       - 3013:5000
     
-    command: ["gunicorn", "-c", "gunicorn_config.py", "app:app"]
+    command: ["gunicorn", "-c", "gunicorn_1x_config.py", "app:app"]
+
+  flask2xanalytics:
+    build:
+      context: ../flask-analytics/deploy
+      dockerfile: Dockerfile
+      # no_cache: true
+    working_dir: /home/app
+    image: sergiunb/flaskanalytics
+    container_name: flask2xanalytics
+    environment:
+      - GUNICORN_EXPOSED_ON=0.0.0.0:5000
+      - FLASK_APP=app.py
+      - FLASK_DEBUG=1
+    volumes:
+      - "../flask-analytics/src:/home/app"
+    networks:
+      - aptestnet
+    ports:
+      - 3014:5000
+    
+    command: ["gunicorn", "-c", "gunicorn_2x_config.py", "app:app"]
