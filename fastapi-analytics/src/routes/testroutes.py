@@ -1,6 +1,7 @@
 import time
 from time import perf_counter
-
+import subprocess
+from datetime import datetime
 from fastapi import APIRouter
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
@@ -21,107 +22,131 @@ testmatrix = np.random.rand(5000,5000)
     description="returns duration in seconds for one iteration on CPU bound task execution",
 )
 async def calibration_api():
+ 
+    ts = datetime.now().isoformat()
 
     start = perf_counter()
     res = _do_cpu_bound()
     end = perf_counter()
 
     return {
-        "message": "Duration of one iteration",
+        "message": "f'--------\n Received at: {ts} -- Duration of one iteration",
         "result": end - start,
     }
-
-def _do_cpu_bound():
-
-    # time.sleep(2)
-    np.square(testmatrix)
-
-    return 'Something'
 
 @router.get(
     "/sync-cpubound/{iterations}",
     tags=["testpoint"],
     summary="get duration in s for one iteration",
-    description="returns duration in seconds for one iteration on CPU bound task execution",
+    description="returns duration in seconds for n iterations on CPU bound task execution",
 )
 async def syncronous_api(iterations:int =1):
 
-    print('Received: ', iterations)
+    ts = datetime.now().isoformat()
+
+    print(f'--------\n Received at: {ts} -- iterations = {iterations} \n -------')
     start = perf_counter()
     for _ in range(iterations):
         _do_cpu_bound()
     end = perf_counter()
 
     return {
-        "message": f"Duration of {iterations} iterations",
+        "message": f"--------\n Received at: {ts} -- Duration of {iterations} iterations",
         "result": end - start,
     }
 
-
 @router.get(
-    "/control/{data}",
-    tags=["testpoint"],
-    summary="control api, mirrors data",
-    description="reflects back request",
-)
-async def control_api(data:str):
-
-   
-    return {
-        "result": "synchronous api test",
-        "message": "Alive",
-        "mirorred": data,
-    }
-
-@router.get(
-    "/synctest/{wait}",
-    tags=["testpoint"],
-    summary="synchronous call api",
-    description="reflects back request",
-)
-async def sync_api(wait: float):
-    # synchronous call
-    _sync_do_work(wait)
-   
-    return {
-        "result": "synchronous api test",
-        "message": "Alive",
-        "mirorred": wait,
-    }
-
-@router.get(
-    "/badasynctest/{data}",
+    "/badasync-cpubound/{iterations}",
     tags=["testpoint"],
     summary="async api hiding a sync call test",
-    description="reflects back request",
+    description="returns duration in seconds for n iterations on CPU bound task execution",
 )
-async def bad_async(wait: float):
+async def bad_async(iterations: int=1):
 
-    # async call with CPU bound sub-function
-    await _bad_async_do_work(wait)
+    ts = datetime.now().isoformat()
+    print(f'--------\n Received at: {ts} -- iterations = {iterations} \n -------')
+    concurrent_tasks = len(asyncio.all_tasks()) + 1 # we add the current task as well
+    print('Running concurrently: ', concurrent_tasks)
+    
+    start = perf_counter()
+    # schedule all iterations to run concurrently 
+    result = await _bad_async_do_work(iterations)
+    end = perf_counter()
     
     return {
-        "result": " bad async test",
-        "message": "Alive",
-        "mirorred": wait,
+        "message": f"At {ts} -- duration for {iterations} iterationss",
+        "result": end - start,
+        "concurrent_tasks": concurrent_tasks
     }
 
 @router.get(
-    "/trueasynctest/{data}",
+    "/async-IObound/{iterations}",
     tags=["testpoint"],
-    summary="async api test",
-    description="reflects back request",
+    summary="non-blocking task api",
+    description="returns duration in seconds for n iterations on CPU bound task execution",
 )
-async def async_test(wait: float):
+async def async_iobound(iterations: int=1):
 
-    # synchronous call
-    await _true_async_do_work(wait)
+    ts = datetime.now().isoformat()
+    print(f'--------\n Received at: {ts} -- iterations = {iterations} \n -------')
+    concurrent_tasks = len(asyncio.all_tasks()) + 1 # we add the current task as well
+    print('Running concurrently: ', concurrent_tasks)
+    
+    start = perf_counter()
+    # schedule all iterations to run concurrently 
+    result = await _do_io_bound(2) # wait 2 seconds
+    end = perf_counter()
     
     return {
-        "result": "async api test",
-        "message": "Alive",
-        "mirorred": wait,
+        "message": f"At {ts} -- duration for {iterations} iterationss",
+        "result": end - start,
+        "concurrent_tasks": concurrent_tasks
     }
+
+
+@router.get(
+    "/resmon",
+    tags=["monitoring", "resource"],
+    summary="resource monitor output",
+    description="returns snapshot of current used resources on server",
+)
+async def resmon_api():
+
+  try:
+    resmondata = subprocess.check_output(['top', # command
+                                     '-b',   # run as batch, no display
+                                     '-n1'   # run for one iteration only -> snapshot of current resources
+                                     ], text=True)
+    return {
+        "message": "Duration of one iteration",
+        "result": resmondata,
+    }
+  except subprocess.CalledProcessError as e:
+    print(f"Error executing 'top' command: {e}")
+    raise HTTPException(status_code=500, detail=f"Error executing reading server resources : {e}")
+
+
+
+
+
+#################################
+
+# @router.get(
+#     "/trueasynctest/{data}",
+#     tags=["testpoint"],
+#     summary="async api test",
+#     description="reflects back request",
+# )
+# async def async_test(wait: float):
+
+#     # synchronous call
+#     await _true_async_do_work(wait)
+    
+#     return {
+#         "result": "async api test",
+#         "message": "Alive",
+#         "mirorred": wait,
+#     }
 @router.get(
     "/multiproctest/{data}",
     tags=["testpoint"],
@@ -133,7 +158,7 @@ async def async_test(wait: float):
     # synchronous call
     with ProcessPoolExecutor() as executor:
         future = asyncio.get_running_loop().run_in_executor(
-            executor, _sync_do_work, wait
+            executor, _do_cpu_bound
         )
         await future
     await _true_async_do_work(wait)
@@ -146,18 +171,24 @@ async def async_test(wait: float):
 
 # ---------------------------------
 # Private functions
-async def _local_fn(param: int):
-    pass 
+def _do_cpu_bound():
+    """
+    Synchronous/blocking task.
+    Here, a matrix multiplication is used to consume actual CPU.
+    """
+    # time.sleep(2)
+    np.square(testmatrix)
 
-def _sync_do_work(wait: float):
-    time.sleep(wait)
+    return 'Something'
 
-async def _bad_async_do_work(wait: float):
+
+async def _bad_async_do_work(iterations:int):
     """ Contains sync call and now actual async-await point"""
     # synchronous call in async function -> await 
-    time.sleep(wait)
+    for _ in range(iterations):
+        _do_cpu_bound()
 
-async def _true_async_do_work(wait: float):
+async def _do_io_bound(wait: float):
     """ Uses non-blocking sleep """
     # synchronous call in async function -> await 
     await asyncio.sleep(wait)

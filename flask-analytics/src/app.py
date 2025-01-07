@@ -1,5 +1,6 @@
 import time
 from time import perf_counter
+import subprocess
 
 from flask import Flask, request, jsonify
 # CORS library
@@ -41,6 +42,23 @@ def syncronous_api(iterations:str):
         "message": f"Duration of {iterations} iterations",
         "result": end - start,
     }
+
+@app.route("/test/resmon", methods=["GET"], strict_slashes=False)
+def resmon_api():
+  try:
+    resmondata = subprocess.check_output(['top', # command
+                                     '-b',   # run as batch, no display
+                                     '-n1'   # run for one iteration only -> snapshot of current resources
+                                     ], text=True)
+    return {
+        "message": "Duration of one iteration",
+        "result": resmondata,
+    }
+  except subprocess.CalledProcessError as e:
+    print(f"Error executing 'top' command: {e}")
+    return {
+        "message": "Error executing reading server resources : {e}",
+    }, 500
 
  
 def _do_cpu_bound():
